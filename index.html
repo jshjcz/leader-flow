@@ -720,11 +720,12 @@ if (!allStates[currentLeader]) {
 // URL param: sync progress from another device
 const urlParams = new URLSearchParams(window.location.search);
 const syncData = urlParams.get('sync');
+let syncedFromURL = false;
 if (syncData) {
   try {
     const decoded = JSON.parse(decodeURIComponent(syncData));
+    console.log('Sync data received:', decoded);
     if (decoded.l && decoded.d) {
-      // Create or update leader with synced data
       if (!allStates[decoded.l]) {
         allStates[decoded.l] = defaultState();
       }
@@ -736,12 +737,14 @@ if (syncData) {
       state = allStates[currentLeader];
       localStorage.setItem(CURRENT_LEADER_KEY, currentLeader);
       updateSelectUI();
+      syncedFromURL = true;
+      showToast('✅ 已同步「' + decoded.l + '」的进度');
       // Clean URL
       if (window.history && window.history.replaceState) {
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
-  } catch(e) { console.log('Sync parse error:', e); }
+  } catch(e) { console.error('Sync parse error:', e); }
 }
 
 // URL param: switch to specific leader (legacy)
