@@ -717,9 +717,9 @@ if (!allStates[currentLeader]) {
   localStorage.setItem(CURRENT_LEADER_KEY, currentLeader);
 }
 
-// URL param: sync progress from another device
-const urlParams = new URLSearchParams(window.location.search);
-const syncData = urlParams.get('sync');
+// URL hash: sync progress from another device
+const hashData = window.location.hash ? window.location.hash.substring(1) : '';
+const syncData = hashData || (new URLSearchParams(window.location.search)).get('sync');
 let syncedFromURL = false;
 if (syncData) {
   try {
@@ -950,17 +950,16 @@ function updateProgress() {
 }
 
 function copyShareLink() {
-  // Encode current leader's progress into URL (safe for Chinese)
+  // Encode current leader's progress into URL hash (more reliable across devices)
   const data = JSON.stringify({
     l: currentLeader,
     d: state.doneSteps,
     s: state.subChecks
   });
-  // Use encodeURIComponent directly, no btoa needed
   const encoded = encodeURIComponent(data);
-  const url = window.location.href.split('?')[0] + '?sync=' + encoded;
+  const url = window.location.href.split('?')[0].split('#')[0] + '#' + encoded;
   navigator.clipboard.writeText(url).then(() => {
-    showToast('✅ 链接已复制！进度已打包，发到手机即可同步');
+    showToast('✅ 链接已复制！发到手机即可同步');
   }).catch(() => {
     const ta = document.createElement('textarea');
     ta.value = url;
@@ -970,7 +969,7 @@ function copyShareLink() {
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('✅ 链接已复制！进度已打包，发到手机即可同步');
+    showToast('✅ 链接已复制！发到手机即可同步');
   });
 }
 
