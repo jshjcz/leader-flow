@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>领队对接工作流程 · 新东方文旅</title>
+<style>
+  :root {
+    --primary: #1A3C6E;
+    --primary-light: #2B5F9E;
+    --accent: #E8833A;
+    --accent-light: #F5A623;
+    --bg: #F7F8FA;
+    --card: #FFFFFF;
+    --text: #333333;
+    --text-light: #888888;
+    --border: #E8ECF1;
+    --success: #27AE60;
+    --step-1: #4A90D9;
+    --step-2: #3CB371;
+    --step-3: #9B59B6;
+    --step-4: #E67E22;
+    --step-5: #E74C3C;
+    --step-6: #1ABC9C;
+    --step-7: #F39C12;
+    --step-8: #3498DB;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: #fff;
+    padding: 28px 20px 22px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(26,60,110,0.2);
+  }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  .header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+  .header .badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 3px 12px;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  /* ── Progress Bar ── */
+  .progress-wrap {
+    max-width: 600px;
+    margin: 16px auto 0;
+    padding: 0 16px;
+  }
+  .progress-bar-outer {
+    background: rgba(255,255,255,0.25);
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    background: var(--accent);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .progress-text {
+    text-align: center;
+    font-size: 12px;
+    margin-top: 4px;
+    opacity: 0.9;
+  }
+
+  /* ── Main Container ── */
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px 16px 100px;
+  }
+
+  /* ── Share Bar ── */
+  .share-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-share {
+    background: var(--accent);
+    color: #fff;
+    flex: 1;
+    justify-content: center;
+  }
+  .btn-share:hover { background: #d4722e; }
+  .btn-reset {
+    background: #fff;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-reset:hover { background: #f0f0f0; }
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── Flow Chart ── */
+  .flow-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .flow-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 24px;
+  }
+  .flow-node-wrap {
+    display: flex;
+    align-items: stretch;
+  }
+  .flow-line-col {
+    width: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .flow-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px var(--border);
+  }
+  .flow-dot.done {
+    background: var(--success);
+    box-shadow: 0 0 0 2px var(--success);
+  }
+  .flow-dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 2px var(--accent); }
+    50% { box-shadow: 0 0 0 6px rgba(232,131,58,0.3); }
+  }
+  .flow-line {
+    width: 2px;
+    flex: 1;
+    min-height: 24px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .flow-line.done { background: var(--success); }
+  .flow-card-col {
+    flex: 1;
+    padding-left: 12px;
+    padding-bottom: 6px;
+  }
+  .flow-card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 4px solid var(--border);
+    position: relative;
+  }
+  .flow-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+  }
+  .flow-card.done { border-left-color: var(--success); opacity: 0.85; }
+  .flow-card.active { border-left-color: var(--accent); }
+
+  .flow-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .flow-card-step {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    white-space: nowrap;
+    transition: background 0.3s;
+  }
+  .flow-card.done .flow-card-step { background: var(--success); }
+  .flow-card.active .flow-card-step { background: var(--accent); }
+
+  .flow-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+    margin-left: 10px;
+  }
+  .flow-card-arrow {
+    font-size: 12px;
+    color: var(--text-light);
+    transition: transform 0.3s;
+  }
+  .flow-card-arrow.open { transform: rotate(90deg); }
+
+  .flow-card-desc {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 4px;
+    margin-left: 0;
+  }
+
+  /* ── Expand Detail ── */
+  .flow-detail {
+    display: none;
+    background: #FAFBFC;
+    border-radius: 0 0 10px 10px;
+    margin-top: -4px;
+    margin-left: 0;
+    padding: 0 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-top: none;
+  }
+  .flow-detail.show { display: block; }
+  .flow-detail-inner { padding: 14px 0; }
+  .flow-detail h4 {
+    font-size: 13px;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  .flow-detail .checklist {
+    list-style: none;
+    padding: 0;
+  }
+  .flow-detail .checklist li {
+    padding: 6px 0;
+    font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .flow-detail .checklist li:last-child { border-bottom: none; }
+  .check-box {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    transition: all 0.2s;
+  }
+  .check-box.checked {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .check-box.checked::after {
+    content: '✓';
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .tip-box {
+    background: #FFF8E1;
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: #8B6914;
+  }
+  .tip-box strong { color: #C77800; }
+
+  /* ── WeChat Reminder Banner ── */
+  .reminder-banner {
+    background: linear-gradient(135deg, #07C160, #06AD56);
+    color: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .reminder-banner h3 { font-size: 15px; margin-bottom: 4px; }
+  .reminder-banner p { font-size: 12px; opacity: 0.9; }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .header h1 { font-size: 18px; }
+    .flow-card-title { font-size: 14px; }
+    .container { padding: 12px 10px 100px; }
+  }
+
+  /* ── Leader Selector ── */
+  .leader-bar {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 12px 16px 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .leader-select {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #D0D5DD;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  .btn-add-leader {
+    background: #fff;
+    border: 1px dashed var(--accent);
+    color: var(--accent);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .btn-add-leader:hover { background: #FFF3E8; }
+  .btn-del-leader {
+    background: #fff;
+    border: 1px solid #E0E0E0;
+    color: #999;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-del-leader:hover { background: #FEE; color: #E74C3C; border-color: #E74C3C; }
+  .add-leader-dialog {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+  }
+  .add-leader-dialog.show { display: flex; }
+  .add-leader-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 360px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .add-leader-card h3 { font-size: 17px; margin-bottom: 12px; }
+  .add-leader-card input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #D0D5DD;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    margin-bottom: 12px;
+  }
+  .add-leader-card .btn-row {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .btn-cancel { background: #f0f0f0; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
+  .btn-confirm { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<div class="header">
+  <h1>📋 领队对接工作流程</h1>
+  <div class="subtitle">新东方文旅 · 标准化操作指引</div>
+  <div class="badge" id="dateBadge"></div>
+  <div class="progress-wrap">
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progressBar"></div>
+    </div>
+    <div class="progress-text" id="progressText">已完成 0 / 8 步</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="container">
+
+  <!-- Leader Selector -->
+  <div class="leader-bar">
+    <select class="leader-select" id="leaderSelect" onchange="switchLeader(this.value)"></select>
+    <button class="btn-add-leader" onclick="showAddDialog()">＋ 新增领队</button>
+    <button class="btn-del-leader" onclick="deleteLeader()">🗑</button>
+  </div>
+
+  <!-- Add Leader Dialog -->
+  <div class="add-leader-dialog" id="addDialog">
+    <div class="add-leader-card">
+      <h3>新增领队</h3>
+      <input type="text" id="newLeaderName" placeholder="输入领队姓名，如：张老师">
+      <div class="btn-row">
+        <button class="btn-cancel" onclick="hideAddDialog()">取消</button>
+        <button class="btn-confirm" onclick="addLeader()">确认添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Bar -->
+  <div class="share-bar">
+    <button class="btn btn-share" onclick="copyShareLink()">
+      📤 复制链接 · 发到微信
+    </button>
+    <button class="btn btn-reset" onclick="resetAll()">
+      🔄 重置
+    </button>
+  </div>
+
+  <!-- WeChat Reminder -->
+  <div class="reminder-banner" onclick="copyShareLink()">
+    <h3>💬 添加到微信提醒</h3>
+    <p>点击复制链接 → 粘贴到微信「文件传输助手」→ 长按链接设为「浮窗」或「收藏」</p>
+  </div>
+
+  <!-- Flow Chart -->
+  <div class="flow-title">📌 点击每个步骤查看详细操作清单</div>
+  <div class="flow-chart" id="flowChart"></div>
+
+</div>
+
+<script>
+// ── Data ──
+const flowData = [
+  {
+    id: 1,
+    title: '小程序注册与权限开通',
+    desc: '完成注册测试、上传无犯罪证明、开通/转移权限',
+    checklist: [
+      '指导领队进入微信小程序【新东方文旅领队】',
+      '上传无犯罪记录证明',
+      '提交账号注册',
+      '确认后台统一开通权限',
+      '完成在线测试'
+    ],
+    tip: ''
+  },
+  {
+    id: 2,
+    title: '企业微信核对',
+    desc: '确认企微已开通且正常使用',
+    checklist: [
+      '确认领队是否已开通企业微信账号',
+      '确认企业微信可以正常登录、收发消息',
+      '如未开通或异常，联系远辉老师处理'
+    ],
+    tip: ''
+  },
+  {
+    id: 3,
+    title: 'PPT 准备与头像替换',
+    desc: '按模板替换企微头像，准备开营自我介绍 PPT',
+    checklist: [
+      '将 PPT 模板发送给领队 — <a href="深圳新东方文旅-领队头像.pptx" download style="color:#1A3C6E;font-weight:bold;">📥 头像模板</a> ｜ <a href="深圳新东方文旅-领队自我介绍.pptx" download style="color:#1A3C6E;font-weight:bold;">📥 自我介绍模板</a>',
+      '确认领队 PPT 内容无误'
+    ],
+    tip: ''
+  },
+  {
+    id: 4,
+    title: '入群与群管理',
+    desc: '邀请进入各群组，修改备注，保持静默',
+    checklist: [
+      '将领队邀请进入「五大名校总群」，群内进行欢迎仪式',
+      '将领队邀请进入「港深领队总群」',
+      '将领队邀请进入「0623」「0627」家长群'
+    ],
+    tip: '稍后我会邀请您进入【5大名校工作总群、领队总群】以及【港深较早团期的家长群】，后者是我们所有的领队老师都会先进群熟悉运营是怎么做的，带团的流程是什么样的。您进群以后，修改备注为新东方领队xx潜水即可。',
+    tipLabel: '话术'
+  },
+  {
+    id: 5,
+    title: '发送资料包',
+    desc: '发送手册、培训PPT、视频相册、出团通知书等全部资料',
+    checklist: [
+      '发送《领队宝典手册》',
+      '发送《领队培训 PPT》',
+      '发送「5 大名校视频合集」和「喔图相册」',
+      '发送《出团通知书》模板（以 0705 为例）',
+      '发送《签注查询办理》指导文件',
+      '发送《漫游开通指导》文件',
+      '发送远辉老师港深培训链接和 PPT',
+      '提醒领队认真阅读领队宝典和培训 PPT，消化所有内容'
+    ],
+    tip: '因为港澳线涉及港澳通行证和签注的检查，所以我们整体开始准备的时间会比较早，上述的资料和准备动作辛苦您最近可以先熟悉着。资料信息都比较多一点，辛苦您慢慢梳理，有任何问题我们随时沟通哦～',
+    tipLabel: '话术'
+  },
+  {
+    id: 6,
+    title: '约 1v1 线上沟通',
+    desc: '预约 40 分钟线上沟通，确认所有事项无遗漏',
+    checklist: [
+      '确认沟通时间',
+      '发送会议链接给领队',
+      '发送会议链接给团操老师'
+    ],
+    tip: '另外关于5大港澳微留学这个产品的熟悉，我们团操安迪老师想跟您约一个1v1的沟通，40分钟左右线上就可以，您看明后两天有没有方便的时间呀',
+    tipLabel: '话术'
+  },
+  {
+    id: 7,
+    title: '同步团操老师制作领队证书',
+    desc: '同步团操老师，安排制作并发送领队证书',
+    checklist: [
+      '同步团操老师',
+      '给领队发送证书'
+    ],
+    tip: 'XX老师，这个是我们5大港澳微留学的领队证书，请您查收哦~这个证书也是我们5大今年特意给领队老师首创新增的，后续的话还有领队老师的邮件确认，预计是在月底发送，到时候您留意查收确认就好哈',
+    tipLabel: '话术'
+  },
+  {
+    id: 8,
+    title: '收集个人信息',
+    desc: '收集领队必要个人信息用于备案和证书制作',
+    checklist: [
+      '发送信息收集模版',
+      '同步执行总表'
+    ],
+    tip: '姓名：\n性别：\n电话：\n邮箱：\n身份证号：\n港澳通行证号码：\n银行卡号：\n开户行【全称含具体支行】：\n日常穿的衣服尺码【例如SMXL等】：\n\n还有就是辛苦您提供一下这些信息给我哦，港澳通行证和签注办理好之后也辛苦把正反面的照片拍我一下哈',
+    tipLabel: '话术'
+  }
+];
+
+// ── Multi-Leader State ──
+const ALL_STATE_KEY = 'leader_flow_all';
+const CURRENT_LEADER_KEY = 'leader_flow_current';
+
+function defaultState() {
+  return { doneSteps: [], expandedId: null, subChecks: {} };
+}
+
+function loadAllStates() {
+  try {
+    const saved = localStorage.getItem(ALL_STATE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return {};
+}
+
+function saveAllStates(all) {
+  localStorage.setItem(ALL_STATE_KEY, JSON.stringify(all));
+}
+
+let allStates = loadAllStates();
+let currentLeader = localStorage.getItem(CURRENT_LEADER_KEY) || '';
+let state = (allStates[currentLeader] || defaultState());
+
+function switchLeader(name) {
+  // save current first
+  allStates[currentLeader] = state;
+  saveAllStates(allStates);
+  // switch
+  currentLeader = name;
+  localStorage.setItem(CURRENT_LEADER_KEY, name);
+  state = allStates[name] || defaultState();
+  updateSelectUI();
+  render();
+}
+
+function addLeader() {
+  const input = document.getElementById('newLeaderName');
+  const name = input.value.trim();
+  if (!name) { showToast('请输入领队姓名'); return; }
+  if (allStates[name]) { showToast('该领队已存在'); return; }
+  // save current
+  allStates[currentLeader] = state;
+  allStates[name] = defaultState();
+  saveAllStates(allStates);
+  currentLeader = name;
+  localStorage.setItem(CURRENT_LEADER_KEY, name);
+  state = allStates[name];
+  hideAddDialog();
+  updateSelectUI();
+  render();
+  showToast('✅ 已添加领队：' + name);
+}
+
+function deleteLeader() {
+  const leaders = Object.keys(allStates);
+  if (leaders.length <= 1) { showToast('至少保留一位领队'); return; }
+  if (!confirm('确定删除领队「' + currentLeader + '」及其所有进度吗？')) return;
+  delete allStates[currentLeader];
+  saveAllStates(allStates);
+  currentLeader = Object.keys(allStates)[0];
+  localStorage.setItem(CURRENT_LEADER_KEY, currentLeader);
+  state = allStates[currentLeader] || defaultState();
+  updateSelectUI();
+  render();
+  showToast('已删除');
+}
+
+function showAddDialog() {
+  document.getElementById('addDialog').classList.add('show');
+  document.getElementById('newLeaderName').value = '';
+  setTimeout(() => document.getElementById('newLeaderName').focus(), 100);
+}
+
+function hideAddDialog() {
+  document.getElementById('addDialog').classList.remove('show');
+}
+
+function updateSelectUI() {
+  const sel = document.getElementById('leaderSelect');
+  const leaders = Object.keys(allStates);
+  if (leaders.length === 0) {
+    // first time: create default
+    allStates['默认领队'] = defaultState();
+    currentLeader = '默认领队';
+    state = allStates['默认领队'];
+    localStorage.setItem(CURRENT_LEADER_KEY, '默认领队');
+    saveAllStates(allStates);
+  }
+  const updated = Object.keys(allStates);
+  sel.innerHTML = updated.map(n => '<option value="' + n + '"' + (n === currentLeader ? ' selected' : '') + '>' + n + '</option>').join('');
+}
+
+function saveCurrentState() {
+  allStates[currentLeader] = state;
+  saveAllStates(allStates);
+}
+
+// Override saveState to use multi-leader
+function saveState(s) {
+  state = s;
+  saveCurrentState();
+}
+
+// Override resetAll to only reset current leader
+function resetAll() {
+  if (confirm('确定要重置「' + currentLeader + '」的所有进度吗？此操作不可撤销。')) {
+    state = defaultState();
+    saveCurrentState();
+    render();
+    showToast('已重置「' + currentLeader + '」的进度');
+  }
+}
+
+// ── Init ──
+updateSelectUI();
+if (!allStates[currentLeader]) {
+  currentLeader = Object.keys(allStates)[0];
+  state = allStates[currentLeader] || defaultState();
+  localStorage.setItem(CURRENT_LEADER_KEY, currentLeader);
+}
+
+// URL param: switch to specific leader
+const urlParams = new URLSearchParams(window.location.search);
+const urlLeader = urlParams.get('leader');
+if (urlLeader && allStates[urlLeader]) {
+  currentLeader = urlLeader;
+  state = allStates[currentLeader];
+  localStorage.setItem(CURRENT_LEADER_KEY, currentLeader);
+  updateSelectUI();
+}
+
+// ── Render ──
+function render() {
+  const container = document.getElementById('flowChart');
+  container.innerHTML = '';
+
+  flowData.forEach((step, idx) => {
+    const isDone = state.doneSteps.includes(step.id);
+    const isActive = !isDone && (idx === 0 || state.doneSteps.includes(flowData[idx-1].id));
+    const isExpanded = state.expandedId === step.id;
+
+    // Flow node wrap
+    const wrap = document.createElement('div');
+    wrap.className = 'flow-node-wrap';
+
+    // Line column
+    const lineCol = document.createElement('div');
+    lineCol.className = 'flow-line-col';
+    const dot = document.createElement('div');
+    dot.className = 'flow-dot' + (isDone ? ' done' : '') + (isActive && !isDone ? ' active' : '');
+    lineCol.appendChild(dot);
+    if (idx < flowData.length - 1) {
+      const line = document.createElement('div');
+      line.className = 'flow-line' + (isDone ? ' done' : '');
+      lineCol.appendChild(line);
+    }
+    wrap.appendChild(lineCol);
+
+    // Card column
+    const cardCol = document.createElement('div');
+    cardCol.className = 'flow-card-col';
+
+    const card = document.createElement('div');
+    card.className = 'flow-card' + (isDone ? ' done' : '') + (isActive && !isDone ? ' active' : '');
+    card.onclick = () => toggleExpand(step.id);
+
+    const header = document.createElement('div');
+    header.className = 'flow-card-header';
+
+    const stepBadge = document.createElement('span');
+    stepBadge.className = 'flow-card-step';
+    stepBadge.textContent = '步骤 ' + step.id;
+
+    const title = document.createElement('span');
+    title.className = 'flow-card-title';
+    title.textContent = step.title;
+
+    const arrow = document.createElement('span');
+    arrow.className = 'flow-card-arrow' + (isExpanded ? ' open' : '');
+    arrow.textContent = '▶';
+
+    header.appendChild(stepBadge);
+    header.appendChild(title);
+    header.appendChild(arrow);
+    card.appendChild(header);
+
+    const desc = document.createElement('div');
+    desc.className = 'flow-card-desc';
+    desc.textContent = step.desc;
+    card.appendChild(desc);
+
+    cardCol.appendChild(card);
+
+    // Detail panel
+    if (isExpanded) {
+      const detail = document.createElement('div');
+      detail.className = 'flow-detail show';
+      const inner = document.createElement('div');
+      inner.className = 'flow-detail-inner';
+
+      const h4 = document.createElement('h4');
+      h4.textContent = '📝 操作清单';
+      inner.appendChild(h4);
+
+      const ul = document.createElement('ul');
+      ul.className = 'checklist';
+
+      step.checklist.forEach((item, ci) => {
+        const li = document.createElement('li');
+        const checkKey = step.id + '_' + ci;
+
+        const cb = document.createElement('span');
+        cb.className = 'check-box' + (state.subChecks[checkKey] ? ' checked' : '');
+        cb.onclick = (e) => {
+          e.stopPropagation();
+          toggleSubCheck(checkKey);
+        };
+
+        const text = document.createElement('span');
+        text.innerHTML = item;
+
+        li.appendChild(cb);
+        li.appendChild(text);
+        ul.appendChild(li);
+      });
+
+      inner.appendChild(ul);
+
+      if (step.tip) {
+        const tipBox = document.createElement('div');
+        tipBox.className = 'tip-box';
+        tipBox.innerHTML = '<strong>💡 ' + (step.tipLabel || '提示') + '：</strong>' + step.tip;
+        inner.appendChild(tipBox);
+      }
+
+      // Done button
+      const btnWrap = document.createElement('div');
+      btnWrap.style.marginTop = '14px';
+      btnWrap.style.textAlign = 'center';
+
+      if (!isDone) {
+        const doneBtn = document.createElement('button');
+        doneBtn.className = 'btn btn-share';
+        doneBtn.style.cssText = 'background:#27AE60;width:100%;justify-content:center;';
+        doneBtn.textContent = '✅ 标记此步骤完成';
+        doneBtn.onclick = (e) => {
+          e.stopPropagation();
+          markDone(step.id);
+        };
+        btnWrap.appendChild(doneBtn);
+      } else {
+        const undoBtn = document.createElement('button');
+        undoBtn.className = 'btn btn-reset';
+        undoBtn.style.width = '100%';
+        undoBtn.style.justifyContent = 'center';
+        undoBtn.textContent = '↩ 撤销完成状态';
+        undoBtn.onclick = (e) => {
+          e.stopPropagation();
+          markUndone(step.id);
+        };
+        btnWrap.appendChild(undoBtn);
+      }
+
+      inner.appendChild(btnWrap);
+      detail.appendChild(inner);
+      cardCol.appendChild(detail);
+    }
+
+    wrap.appendChild(cardCol);
+    container.appendChild(wrap);
+  });
+
+  // Update progress
+  updateProgress();
+}
+
+function toggleExpand(id) {
+  if (state.expandedId === id) {
+    state.expandedId = null;
+  } else {
+    state.expandedId = id;
+  }
+  saveState(state);
+  render();
+}
+
+function toggleSubCheck(key) {
+  state.subChecks[key] = !state.subChecks[key];
+  saveState(state);
+  render();
+}
+
+function markDone(id) {
+  if (!state.doneSteps.includes(id)) {
+    state.doneSteps.push(id);
+  }
+  state.expandedId = null;
+  saveState(state);
+  render();
+}
+
+function markUndone(id) {
+  state.doneSteps = state.doneSteps.filter(s => s !== id);
+  saveState(state);
+  render();
+}
+
+function resetAll() {
+  if (confirm('确定要重置所有进度吗？此操作不可撤销。')) {
+    state = { doneSteps: [], expandedId: null, subChecks: {} };
+    saveState(state);
+    render();
+    showToast('已重置全部进度');
+  }
+}
+
+function updateProgress() {
+  const done = state.doneSteps.length;
+  const total = flowData.length;
+  const pct = Math.round((done / total) * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `已完成 ${done} / ${total} 步 · ${pct}%`;
+}
+
+function copyShareLink() {
+  const url = window.location.href.split('?')[0] + '?leader=' + encodeURIComponent(currentLeader);
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('✅ 链接已复制！去微信粘贴给「文件传输助手」吧');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ 链接已复制！去微信粘贴给「文件传输助手」吧');
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Date Badge ──
+document.getElementById('dateBadge').textContent = '更新于 ' + new Date().toLocaleDateString('zh-CN');
+
+// ── Init ──
+render();
+</script>
+</body>
+</html>
