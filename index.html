@@ -722,7 +722,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const syncData = urlParams.get('sync');
 if (syncData) {
   try {
-    const decoded = JSON.parse(decodeURIComponent(atob(syncData)));
+    const decoded = JSON.parse(decodeURIComponent(syncData));
     if (decoded.l && decoded.d) {
       // Create or update leader with synced data
       if (!allStates[decoded.l]) {
@@ -947,13 +947,14 @@ function updateProgress() {
 }
 
 function copyShareLink() {
-  // Encode current leader's progress into URL
+  // Encode current leader's progress into URL (safe for Chinese)
   const data = JSON.stringify({
     l: currentLeader,
     d: state.doneSteps,
     s: state.subChecks
   });
-  const encoded = btoa(encodeURIComponent(data));
+  // Use encodeURIComponent directly, no btoa needed
+  const encoded = encodeURIComponent(data);
   const url = window.location.href.split('?')[0] + '?sync=' + encoded;
   navigator.clipboard.writeText(url).then(() => {
     showToast('✅ 链接已复制！进度已打包，发到手机即可同步');
