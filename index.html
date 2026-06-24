@@ -717,10 +717,36 @@ if (!allStates[currentLeader]) {
   localStorage.setItem(CURRENT_LEADER_KEY, currentLeader);
 }
 
-// URL param: switch to specific leader
+// URL param: sync progress from another device
 const urlParams = new URLSearchParams(window.location.search);
+const syncData = urlParams.get('sync');
+if (syncData) {
+  try {
+    const decoded = JSON.parse(decodeURIComponent(atob(syncData)));
+    if (decoded.l && decoded.d) {
+      // Create or update leader with synced data
+      if (!allStates[decoded.l]) {
+        allStates[decoded.l] = defaultState();
+      }
+      allStates[decoded.l].doneSteps = decoded.d;
+      allStates[decoded.l].subChecks = decoded.s || {};
+      allStates[decoded.l].expandedId = null;
+      saveAllStates(allStates);
+      currentLeader = decoded.l;
+      state = allStates[currentLeader];
+      localStorage.setItem(CURRENT_LEADER_KEY, currentLeader);
+      updateSelectUI();
+      // Clean URL
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  } catch(e) { console.log('Sync parse error:', e); }
+}
+
+// URL param: switch to specific leader (legacy)
 const urlLeader = urlParams.get('leader');
-if (urlLeader && allStates[urlLeader]) {
+if (urlLeader && allStates[urlLeader] && !syncData) {
   currentLeader = urlLeader;
   state = allStates[currentLeader];
   localStorage.setItem(CURRENT_LEADER_KEY, currentLeader);
@@ -921,11 +947,17 @@ function updateProgress() {
 }
 
 function copyShareLink() {
-  const url = window.location.href.split('?')[0] + '?leader=' + encodeURIComponent(currentLeader);
+  // Encode current leader's progress into URL
+  const data = JSON.stringify({
+    l: currentLeader,
+    d: state.doneSteps,
+    s: state.subChecks
+  });
+  const encoded = btoa(encodeURIComponent(data));
+  const url = window.location.href.split('?')[0] + '?sync=' + encoded;
   navigator.clipboard.writeText(url).then(() => {
-    showToast('✅ 链接已复制！去微信粘贴给「文件传输助手」吧');
+    showToast('✅ 链接已复制！进度已打包，发到手机即可同步');
   }).catch(() => {
-    // Fallback
     const ta = document.createElement('textarea');
     ta.value = url;
     ta.style.position = 'fixed';
@@ -934,7 +966,7 @@ function copyShareLink() {
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('✅ 链接已复制！去微信粘贴给「文件传输助手」吧');
+    showToast('✅ 链接已复制！进度已打包，发到手机即可同步');
   });
 }
 
