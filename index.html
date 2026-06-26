@@ -436,6 +436,20 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- Error Display (shows if JS fails) -->
+<div id="errorDisplay" style="display:none;position:fixed;top:0;left:0;right:0;background:#e74c3c;color:#fff;padding:12px;text-align:center;font-size:13px;z-index:9999;"></div>
+
+<script>
+window.onerror = function(msg, url, line, col, err) {
+  var d = document.getElementById('errorDisplay');
+  if (d) {
+    d.style.display = 'block';
+    d.textContent = 'JS错误: ' + msg + ' (行:' + line + ')';
+  }
+  return false;
+};
+</script>
+
 <!-- Header -->
 <div class="header">
   <h1>📋 领队对接工作流程</h1>
@@ -981,10 +995,15 @@ function showToast(msg) {
 }
 
 // ── Date Badge ──
-document.getElementById('dateBadge').textContent = '更新于 ' + new Date().toLocaleDateString('zh-CN');
+document.getElementById('dateBadge').textContent = 'v2.1 · ' + new Date().toLocaleDateString('zh-CN');
 
 // ── Init ──
-render();
+try {
+  render();
+  console.log('Render complete, version v2.1');
+} catch(e) {
+  document.body.innerHTML = '<div style="padding:20px;text-align:center;"><h2>页面加载出错</h2><p>' + e.message + '</p><p>请刷新页面重试，或清除浏览器缓存后重新打开</p></div>';
+}
 </script>
 </body>
 </html>
